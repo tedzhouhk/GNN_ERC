@@ -125,5 +125,5 @@ if __name__ == '__main__':
         dialogues, speakers, labels, roles = parse_MELD()
     elif args.d == 'dailydialogue':
         dialogues, speakers, labels, roles = parse_dailydialogue()
-    
+     
     import pdb; pdb.set_trace()
