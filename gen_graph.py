@@ -1,7 +1,12 @@
 import argparse
 import pickle
 import json
+import torch
+import os
 import numpy as np
+import scipy.sparse as sp
+from transformers import BertTokenizer, BertModel
+from tqdm import tqdm
 
 def parse_IEMOCAP():
     f = pickle.load(open('data_raw/IEMOCAP_features_raw.pkl', 'rb'), encoding='latin1')
@@ -83,6 +88,12 @@ def parse_MELD():
         speakers.append(speaker)
     return dialogues, speakers, labels, roles
 
+def to_coo(row, col, data, size):
+    row = np.array(row)
+    col = np.array(col)
+    data = np.array(data)
+    return sp.coo_matrix((data, (row, col)), shape=(size, size))
+
 def parse_dailydialogue():
     emo_dict = {'no_emotion': 0, 'anger': 1, 'disgust': 2, 'fear': 3, 'happiness': 4, 'sadness': 5, 'surprise': 6}
     raw = list()
@@ -112,6 +123,90 @@ def parse_dailydialogue():
         speakers.append(speaker)
     return dialogues, speakers, labels, roles
 
+def gen_graph(path, dialogues, speakers, labels, roles):
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    model = BertModel.from_pretrained('bert-base-uncased').cuda()
+    features_pooled = list()
+    features_mean = list()
+    ground_truth = list()
+    split = list()
+    tid = 0
+    adj_full_row = list()
+    adj_full_col = list()
+    adj_full_data = list()
+    adj_self_row = list()
+    adj_self_col = list()
+    adj_self_data = list()
+    adj_past_row = list()
+    adj_past_col = list()
+    adj_past_data = list()
+    adj_futr_row = list()
+    adj_futr_col = list()
+    adj_futr_data = list()
+    with torch.no_grad():
+        for dialogue, speaker, label, role in tqdm(zip(dialogues, speakers, labels, roles), total = len(dialogues)):
+            # fully connected graph for one dialogue
+            for i in range(len(dialogue)):
+                tot = 0
+                for j in range(len(dialogue)):
+                    adj_full_row.append(tid + i)
+                    adj_full_col.append(tid + j)
+                    adj_full_data.append(1 / len(dialogue))
+                    adj_full_row.append(tid + j)
+                    adj_full_col.append(tid + i)
+                    adj_full_data.append(1 / len(dialogue))
+                    if speakers[i] == speakers[j]:
+                        adj_self_row.append(tid + i)
+                        adj_self_col.append(tid + j)
+                        tot += 1
+                        adj_self_row.append(tid + j)
+                        adj_self_col.append(tid + i)
+                    if j < i:
+                        adj_past_row.append(tid + i)
+                        adj_past_col.append(tid + j)
+                        adj_past_data.append(1 / i)
+                        adj_past_row.append(tid + j)
+                        adj_past_col.append(tid + i)
+                        adj_past_data.append(1 / i)
+                    elif i < j:
+                        adj_futr_row.append(tid + i)
+                        adj_futr_col.append(tid + j)
+                        adj_futr_data.append(1 / (len(dialogue) - i - 1))
+                        adj_futr_row.append(tid + j)
+                        adj_futr_col.append(tid + i)
+                        adj_futr_data.append(1 / (len(dialogue) - i - 1))
+                for _ in range(2 * tot):
+                    adj_self_data.append(1 / tot)
+            for i in range(len(dialogue)):
+                tokens = tokenizer.encode(dialogue[i])
+                inputs = torch.tensor(tokens).unsqueeze(0).cuda()
+                outputs = model(inputs)
+                features_pooled.append(outputs[1][0].cpu().detach().numpy())
+                features_mean.append(torch.mean(outputs[0][0],dim=0).cpu().detach().numpy())
+                ground_truth.append(label[i])
+                split.append(role)
+                tid += 1
+    adj_full = to_coo(adj_full_row, adj_full_col, adj_full_data, tid)
+    adj_self = to_coo(adj_self_row, adj_self_col, adj_self_data, tid)
+    adj_past = to_coo(adj_past_row, adj_past_col, adj_past_data, tid)
+    adj_futr = to_coo(adj_futr_row, adj_futr_col, adj_futr_data, tid)
+    features_pooled = np.stack(features_pooled, axis=0)
+    features_mean = np.stack(features_mean, axis=0)
+    split = np.array(split, dtype=np.int32)
+    ground_truth = np.array(ground_truth, dtype=np.int32)
+    if not os.path.isdir('data'):
+        os.mkdir('data')
+    if not os.path.isdir('data/' + path):
+        os.mkdir('data/' + path)
+    np.save('data/' + path + '/features_pooled.npy', features_pooled)
+    np.save('data/' + path + '/features_mean.npy', features_mean)
+    np.save('data/' + path + '/role.npy', split)
+    np.save('data/' + path + '/label.npy', ground_truth)
+    sp.save_npz('data/' + path + '/adj_full.npz', adj_full)
+    sp.save_npz('data/' + path + '/adj_self.npz', adj_self)
+    sp.save_npz('data/' + path + '/adj_past.npz', adj_past)
+    sp.save_npz('data/' + path + '/adj_futr.npz', adj_futr)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Arguments to generate graph.')
 
@@ -126,4 +221,4 @@ if __name__ == '__main__':
     elif args.d == 'dailydialogue':
         dialogues, speakers, labels, roles = parse_dailydialogue()
      
-    import pdb; pdb.set_trace()
+    gen_graph(args.d, dialogues, speakers, labels, roles)
