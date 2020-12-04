@@ -7,7 +7,7 @@ from sklearn import metrics
 def calc_f1(y_true, y_pred):
     y_true = np.argmax(y_true, axis=1)
     # y_pred = np.argmax(y_pred, axis=1)
-    return metrics.f1_score(y_true, y_pred, average="micro")
+    return metrics.f1_score(y_true, y_pred, average="weighted")
 
 def calc_class_level_acc(y_true, y_pred, num_cls):
     y_true = np.argmax(y_true, axis=1)

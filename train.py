@@ -66,9 +66,9 @@ if __name__ == '__main__':
             best_val = val_acc
             best_test = test_acc
             best_pred = label[role['te']].detach().cpu().numpy()
-        print('epoch: {} train f1mic: {:.3f} val f1mic: {:.3f} (test f1mic: {:.3f})'.format(e, train_acc, val_acc, test_acc))
+        print('epoch: {} train f1weighted: {:.3f} val f1weighted: {:.3f} (test f1weighted: {:.3f})'.format(e, train_acc, val_acc, test_acc))
     print('Optimization Finished!')
-    print('Epoch: {}, test f1mic: {:.3f}'.format(best_e, best_test))
+    print('Epoch: {}, test f1weighted: {:.3f}'.format(best_e, best_test))
 
     if args.d == 'IEMOCAP':
         cat = ['hap','sad','neu','ang','exc','fru']
@@ -80,5 +80,5 @@ if __name__ == '__main__':
     print('Class Level Acc and F1:')
     for name, acc, f1 in zip(cat, accs, f1s):
         print('{}: acc: {:.3f} f1: {:.3f}'.format(name, acc, f1))
-    print('Avg acc: {:.3f} f1: {:.3f}'.format(np.mean(accs), np.mean(f1s)))
+    # print('Avg acc: {:.3f} f1: {:.3f}'.format(np.mean(accs), np.mean(f1s)))
     
