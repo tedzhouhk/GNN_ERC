@@ -145,7 +145,7 @@ def gen_graph(path, dialogues, speakers, labels, roles):
     adj_futr_data = list()
     with torch.no_grad():
         for dialogue, speaker, label, role in tqdm(zip(dialogues, speakers, labels, roles), total = len(dialogues)):
-            # fully connected graph for one dialogue
+            # we add two directed edges to represent undirected edges
             for i in range(len(dialogue)):
                 tot = 0
                 for j in range(len(dialogue)):
@@ -165,16 +165,16 @@ def gen_graph(path, dialogues, speakers, labels, roles):
                         adj_past_row.append(tid + i)
                         adj_past_col.append(tid + j)
                         adj_past_data.append(1 / i)
-                        adj_past_row.append(tid + j)
-                        adj_past_col.append(tid + i)
-                        adj_past_data.append(1 / i)
+                        # adj_past_row.append(tid + j)
+                        # adj_past_col.append(tid + i)
+                        # adj_past_data.append(1 / i)
                     elif i < j:
                         adj_futr_row.append(tid + i)
                         adj_futr_col.append(tid + j)
                         adj_futr_data.append(1 / (len(dialogue) - i - 1))
-                        adj_futr_row.append(tid + j)
-                        adj_futr_col.append(tid + i)
-                        adj_futr_data.append(1 / (len(dialogue) - i - 1))
+                        # adj_futr_row.append(tid + j)
+                        # adj_futr_col.append(tid + i)
+                        # adj_futr_data.append(1 / (len(dialogue) - i - 1))
                 for _ in range(2 * tot):
                     adj_self_data.append(1 / tot)
             for i in range(len(dialogue)):
@@ -186,6 +186,7 @@ def gen_graph(path, dialogues, speakers, labels, roles):
                 ground_truth.append(label[i])
                 split.append(role)
                 tid += 1
+    # when converting to coo, multiple entries with same row and column are added
     adj_full = to_coo(adj_full_row, adj_full_col, adj_full_data, tid)
     adj_self = to_coo(adj_self_row, adj_self_col, adj_self_data, tid)
     adj_past = to_coo(adj_past_row, adj_past_col, adj_past_data, tid)

@@ -41,10 +41,12 @@ The script to train is provided in *train.py*. The arguments it takes are
 * --dim: multiple (five) integers, specifying the output dimension of each sub-module in the order: *fully connected grpah with attention*, *graph connecting uttrances with same speaker*, *graph connecting past uttrances*, *graph connecting future uttrances*, *graph with no connection (perceptron)*. If the dimension is zero, then that sub-module is ignored.
 * -l: multiple (four) integers, specifying the number of GNN layers of each sub-module in the order *fully connected grpah with attention*, *graph connecting uttrances with same speaker*, *graph connecting past uttrances*, *graph connecting future uttrances*.
 * -e: an integer, the number of epochs to train.
-* -s: an integer, optional, to sepcify the random seed (usefull in reproducing the results). Most seeds works well and can get the accuracy stated in the paper, but some seeds may leads to very bad results, espeically for IEMOCAP dataset
+* -s: an integer, optional, to sepcify the random seed (usefull in reproducing the results). Most seeds works well and can get the accuracy stated in the paper, but some seeds may leads to bad results, (especially for IEMOCAP). 
 
 To reproduce the accuracy in the paper for the three datasets, run:
 
-`python train.py -d IEMOCAP -f mean -r 0.3 --dim 256 128 128 128 128 -l 2 1 1 1 -e 200 -s 6`
-`python train.py -d MELD -f mean -r 0.4 --dim 256 128 128 128 128 -l 2 1 1 1 -e 200 -s 0`
-`python train.py -d dailydialogue -f mean -r 0.3 --dim 0 128 128 128 128 -l 0 1 1 1 -e 200 -s 0`
+`python train.py -d IEMOCAP -f mean -r 0.3 --dim 256 128 128 128 128 -l 2 1 1 1 -e 165 -v 0.5 -s 0`
+
+`python train.py -d MELD -f mean -r 0.4 --dim 256 128 128 128 128 -l 2 1 1 1 -e 30 -s 2`
+
+`python train.py -d dailydialogue -f mean -r 0.3 --dim 0 128 128 128 128 -l 0 1 1 1 -e 100 -s 0`

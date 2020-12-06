@@ -5,12 +5,19 @@ import numpy as np
 from sklearn import metrics
 
 def calc_f1(y_true, y_pred):
-    y_true = np.argmax(y_true, axis=1)
-    # y_pred = np.argmax(y_pred, axis=1)
+    y_pred = np.argmax(y_pred, axis=1)
     return metrics.f1_score(y_true, y_pred, average="weighted")
 
+def calc_f1mima(y_true, y_pred):
+    y_pred = np.argmax(y_pred, axis=1)
+    return metrics.f1_score(y_true, y_pred, average="micro"), metrics.f1_score(y_true, y_pred, average="macro")
+
+def calc_acc(y_true, y_pred):
+    y_pred = np.argmax(y_pred, axis=1)
+    return metrics.accuracy_score(y_true, y_pred)
+
 def calc_class_level_acc(y_true, y_pred, num_cls):
-    y_true = np.argmax(y_true, axis=1)
+    y_pred = np.argmax(y_pred, axis=1)
     f1 = metrics.f1_score(y_true, y_pred, average=None)
     acc = list()
     for i in range(num_cls):
